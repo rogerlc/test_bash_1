@@ -1,0 +1,102 @@
+const container = document.getElementById('exam-container');
+const resultDiv = document.getElementById('result');
+
+function renderQuestions(questions) {
+    container.innerHTML = '';
+    questions.forEach((q, idx) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question';
+        questionDiv.dataset.index = idx;
+
+        const title = document.createElement('h2');
+        title.textContent = `${idx + 1}. ${q.question}`;
+        questionDiv.appendChild(title);
+
+        const optionsDiv = document.createElement('div');
+        optionsDiv.className = 'options';
+
+        q.options.forEach((opt, i) => {
+            const input = document.createElement('input');
+            const id = `q${idx}_opt${i}`;
+            input.type = q.type;
+            input.name = `q${idx}`;
+            input.id = id;
+            input.value = opt;
+
+            const label = document.createElement('label');
+            label.htmlFor = id;
+            label.textContent = opt;
+            label.style.display = 'inline-block';
+            label.style.marginRight = '15px';
+
+            optionsDiv.appendChild(input);
+            optionsDiv.appendChild(label);
+        });
+
+        questionDiv.appendChild(optionsDiv);
+        container.appendChild(questionDiv);
+    });
+}
+
+function grade() {
+    let correctCount = 0;
+    questions.forEach((q, idx) => {
+        const questionDiv = document.querySelector(`.question[data-index="${idx}"]`);
+        const inputs = questionDiv.querySelectorAll('input');
+        const correctAnswers = q.answers;
+        let userAnswers = [];
+
+        inputs.forEach(input => {
+            if(input.checked) userAnswers.push(input.value);
+            input.nextElementSibling.classList.remove('correct', 'incorrect');
+        });
+
+        let isCorrect = false;
+        if(q.type === 'radio') isCorrect = userAnswers[0] === correctAnswers[0];
+        else isCorrect = correctAnswers.length === userAnswers.length && correctAnswers.every(ans => userAnswers.includes(ans));
+
+        inputs.forEach(input => {
+            if(correctAnswers.includes(input.value)) input.nextElementSibling.classList.add('correct');
+            else if(input.checked && !correctAnswers.includes(input.value)) input.nextElementSibling.classList.add('incorrect');
+        });
+
+        if(isCorrect) correctCount++;
+    });
+
+    resultDiv.textContent = `You got ${correctCount} out of ${questions.length} correct.`;
+}
+
+function reviewIncorrect() {
+    let reviewWindow = window.open('', 'Review Incorrect', 'width=600,height=400,scrollbars=yes');
+    reviewWindow.document.write('<html><head><title>Incorrect Questions</title><style>body{font-family:Arial,sans-serif;} .incorrect-review{border:2px dashed #f44336;padding:10px;margin:10px 0;background-color:#fff3f3;}</style></head><body>');
+    reviewWindow.document.write('<h2>Incorrect Questions</h2>');
+
+    questions.forEach((q, idx) => {
+        const questionDiv = document.querySelector(`.question[data-index="${idx}"]`);
+        const inputs = questionDiv.querySelectorAll('input');
+        let userAnswers = [];
+        inputs.forEach(input => { if(input.checked) userAnswers.push(input.value); });
+
+        let isCorrect = false;
+        if(q.type === 'radio') isCorrect = userAnswers[0] === q.answers[0];
+        else isCorrect = q.answers.length === userAnswers.length && q.answers.every(ans => userAnswers.includes(ans));
+
+        if(!isCorrect) {
+            reviewWindow.document.write(`<div class="incorrect-review"><strong>${idx + 1}. ${q.question}</strong><br>Correct answer(s): ${q.answers.join(', ')}</div>`);
+        }
+    });
+
+    reviewWindow.document.write('</body></html>');
+    reviewWindow.document.close();
+}
+
+function restart() {
+    renderQuestions(questions);
+    resultDiv.textContent = '';
+}
+
+renderQuestions(questions);
+
+document.getElementById('grade-btn').addEventListener('click', grade);
+document.getElementById('review-btn').addEventListener('click', reviewIncorrect);
+document.getElementById('restart-btn').addEventListener('click', restart);
